@@ -7,6 +7,27 @@ const AudioEngine = (() => {
     let enabled = true;
     let voiceEnabled = true;
 
+    // Pre-loaded voice cue audio elements
+    const voiceClips = {
+        en: [null, null, null, null],
+        hi: [null, null, null, null]
+    };
+    const CLIP_NAMES = ['inhale', 'hold', 'exhale', 'hold2'];
+
+    /**
+     * Preload all voice clip audio elements
+     */
+    function preloadVoiceClips() {
+        ['en', 'hi'].forEach(lang => {
+            CLIP_NAMES.forEach((name, i) => {
+                const audio = new Audio('audio/' + lang + '/' + name + '.mp3');
+                audio.preload = 'auto';
+                audio.volume = 0.8;
+                voiceClips[lang][i] = audio;
+            });
+        });
+    }
+
     function getContext() {
         if (!ctx) {
             ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -87,38 +108,28 @@ const AudioEngine = (() => {
     }
 
     /**
-     * Speak a phase cue using Web Speech API
-     * @param {string} text - text to speak
-     */
-    function speak(text) {
-        if (!enabled || !voiceEnabled) return;
-        if (!('speechSynthesis' in window)) return;
-        // Cancel any ongoing speech
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.9;
-        utterance.volume = 0.7;
-        utterance.lang = currentLang === 'hi' ? 'hi-IN' : 'en-US';
-        window.speechSynthesis.speak(utterance);
-    }
-
-    /**
-     * Speak a phase change cue
+     * Play a recorded voice cue for the given phase
      * @param {number} phaseIndex - 0=inhale, 1=hold, 2=exhale, 3=hold2
      */
     function speakPhase(phaseIndex) {
-        const cues = {
-            en: ['Breathe in', 'Hold', 'Breathe out', 'Hold'],
-            hi: ['सांस लें', 'रोकें', 'सांस छोड़ें', 'रोकें']
-        };
+        if (!enabled || !voiceEnabled) return;
         const lang = getLanguage();
-        speak(cues[lang][phaseIndex]);
+        const clip = voiceClips[lang][phaseIndex];
+        if (clip) {
+            clip.currentTime = 0;
+            clip.play().catch(() => {});
+        }
     }
 
     function setEnabled(val) {
         enabled = val;
-        if (!val && 'speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
+        if (!val) {
+            // Stop any playing voice clips
+            ['en', 'hi'].forEach(lang => {
+                voiceClips[lang].forEach(clip => {
+                    if (clip) { clip.pause(); clip.currentTime = 0; }
+                });
+            });
         }
     }
 
@@ -137,17 +148,20 @@ const AudioEngine = (() => {
         }
     }
 
+    // Preload voice clips on module load
+    preloadVoiceClips();
+
     return {
         playTick,
         playPhaseTransition,
         playCountdownTick,
         playComplete,
         speakPhase,
-        speak,
         setEnabled,
         isEnabled,
         toggleVoice,
         ensureResumed,
-        getContext
+        getContext,
+        preloadVoiceClips
     };
 })();
