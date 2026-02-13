@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breathing Metronome | Box Breathing & More</title>
+    <meta name="description" content="Evidence-based breathing exercises with visual and audio metronome. 8 patterns including Box Breathing, 4-7-8, Resonance Breathing, and more.">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo" id="app-title">Breathing Metronome</h1>
+                <div class="header-controls">
+                    <button class="btn-icon" id="lang-toggle" title="Switch Language" aria-label="Switch language">
+                        <span id="lang-label">EN</span>
+                    </button>
+                    <button class="btn-icon" id="sound-toggle" title="Toggle Sound" aria-label="Toggle sound">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 5L6 9H2v6h4l5 4V5z" id="sound-icon-base"/>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" id="sound-icon-waves"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Pattern Selection Screen -->
+        <section id="pattern-select-screen" class="screen active">
+            <div class="container">
+                <h2 class="screen-title" id="choose-pattern-title">Choose Your Breathing Pattern</h2>
+                <p class="screen-subtitle" id="choose-pattern-subtitle">Evidence-based techniques for focus, calm, and resilience</p>
+                <div class="pattern-grid" id="pattern-grid">
+                    <!-- Patterns injected by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Pattern Detail / Setup Screen -->
+        <section id="setup-screen" class="screen">
+            <div class="container">
+                <button class="btn-back" id="btn-back-to-patterns">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    <span id="back-label">Back</span>
+                </button>
+
+                <div class="setup-layout">
+                    <div class="setup-info">
+                        <h2 class="pattern-title" id="setup-pattern-title"></h2>
+                        <p class="pattern-subtitle" id="setup-pattern-subtitle"></p>
+                        <div class="pattern-timing" id="setup-timing-display"></div>
+
+                        <div class="info-section">
+                            <h3 id="mechanism-title">How It Works</h3>
+                            <ul class="info-list" id="setup-mechanism"></ul>
+                        </div>
+
+                        <div class="info-section">
+                            <h3 id="bestfor-title">Best For</h3>
+                            <p id="setup-bestfor"></p>
+                        </div>
+
+                        <div class="info-section">
+                            <h3 id="research-title">Research Basis</h3>
+                            <p id="setup-research"></p>
+                        </div>
+
+                        <div class="warning-box" id="setup-warning" style="display:none;">
+                            <span class="warning-icon">&#9888;</span>
+                            <p id="setup-warning-text"></p>
+                        </div>
+                    </div>
+
+                    <div class="setup-controls">
+                        <div class="control-group">
+                            <label id="duration-label">Session Duration</label>
+                            <div class="duration-options" id="duration-options">
+                                <button class="duration-btn" data-duration="60">1 min</button>
+                                <button class="duration-btn" data-duration="180">3 min</button>
+                                <button class="duration-btn active" data-duration="300">5 min</button>
+                                <button class="duration-btn" data-duration="600">10 min</button>
+                                <button class="duration-btn" data-duration="900">15 min</button>
+                                <button class="duration-btn" data-duration="1200">20 min</button>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label id="visual-style-label">Visual Style</label>
+                            <div class="visual-options" id="visual-options">
+                                <button class="visual-btn active" data-visual="circle">
+                                    <svg width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="20 55"/></svg>
+                                    <span id="visual-circle-label">Circle</span>
+                                </button>
+                                <button class="visual-btn" data-visual="shape">
+                                    <svg width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="8" fill="currentColor" opacity="0.3"/><circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                                    <span id="visual-shape-label">Shape</span>
+                                </button>
+                                <button class="visual-btn" data-visual="bar">
+                                    <svg width="32" height="32" viewBox="0 0 32 32"><rect x="4" y="10" width="24" height="12" rx="6" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="10" width="14" height="12" rx="6" fill="currentColor" opacity="0.3"/></svg>
+                                    <span id="visual-bar-label">Bar</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button class="btn-start" id="btn-start">
+                            <span id="start-label">Start Session</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Active Breathing Session Screen -->
+        <section id="session-screen" class="screen">
+            <div class="session-layout">
+                <!-- Top bar with timer and controls -->
+                <div class="session-top-bar">
+                    <button class="btn-icon session-control" id="btn-stop" title="Stop">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                    </button>
+                    <div class="session-timer">
+                        <span class="timer-elapsed" id="timer-elapsed">0:00</span>
+                        <span class="timer-sep">/</span>
+                        <span class="timer-total" id="timer-total">5:00</span>
+                    </div>
+                    <div class="session-cycle-count">
+                        <span id="cycle-label-text">Cycle</span>
+                        <span id="cycle-count">0</span>
+                    </div>
+                </div>
+
+                <!-- Central visualization area -->
+                <div class="session-visual-area">
+                    <div class="visual-container" id="visual-container">
+                        <!-- Circle visualization (default) -->
+                        <svg class="vis-circle" id="vis-circle" viewBox="0 0 300 300" width="300" height="300">
+                            <defs>
+                                <linearGradient id="grad-inhale" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#4A90D9;stop-opacity:0.2"/>
+                                    <stop offset="100%" style="stop-color:#4A90D9;stop-opacity:0.05"/>
+                                </linearGradient>
+                                <linearGradient id="grad-hold" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#50B86C;stop-opacity:0.2"/>
+                                    <stop offset="100%" style="stop-color:#50B86C;stop-opacity:0.05"/>
+                                </linearGradient>
+                                <linearGradient id="grad-exhale" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#9B6DD7;stop-opacity:0.2"/>
+                                    <stop offset="100%" style="stop-color:#9B6DD7;stop-opacity:0.05"/>
+                                </linearGradient>
+                                <linearGradient id="grad-hold2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#D4A843;stop-opacity:0.2"/>
+                                    <stop offset="100%" style="stop-color:#D4A843;stop-opacity:0.05"/>
+                                </linearGradient>
+                            </defs>
+                            <!-- Background circle -->
+                            <circle cx="150" cy="150" r="120" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8"/>
+                            <!-- Progress arc -->
+                            <circle cx="150" cy="150" r="120" fill="none" stroke="#4A90D9" stroke-width="8"
+                                    stroke-dasharray="753.98" stroke-dashoffset="753.98"
+                                    stroke-linecap="round" transform="rotate(-90 150 150)"
+                                    id="progress-arc"/>
+                            <!-- Inner fill circle for shape mode -->
+                            <circle cx="150" cy="150" r="0" id="inner-shape" opacity="0.15"/>
+                        </svg>
+
+                        <!-- Bar visualization (hidden by default) -->
+                        <div class="vis-bar" id="vis-bar" style="display:none;">
+                            <div class="bar-track">
+                                <div class="bar-fill" id="bar-fill"></div>
+                            </div>
+                        </div>
+
+                        <!-- Central text overlay -->
+                        <div class="vis-center-text">
+                            <div class="phase-label" id="phase-label">Get Ready</div>
+                            <div class="phase-countdown" id="phase-countdown">3</div>
+                            <div class="pattern-display" id="session-pattern-display"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase indicator bar at bottom -->
+                <div class="session-phase-bar">
+                    <div class="phase-segment phase-inhale" id="phase-seg-inhale">
+                        <span id="phase-seg-inhale-label">Inhale</span>
+                    </div>
+                    <div class="phase-segment phase-hold" id="phase-seg-hold">
+                        <span id="phase-seg-hold-label">Hold</span>
+                    </div>
+                    <div class="phase-segment phase-exhale" id="phase-seg-exhale">
+                        <span id="phase-seg-exhale-label">Exhale</span>
+                    </div>
+                    <div class="phase-segment phase-hold2" id="phase-seg-hold2">
+                        <span id="phase-seg-hold2-label">Hold</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Session Complete Screen -->
+        <section id="complete-screen" class="screen">
+            <div class="container complete-content">
+                <div class="complete-icon">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#50B86C" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+                <h2 id="complete-title">Session Complete</h2>
+                <div class="complete-stats">
+                    <div class="stat">
+                        <span class="stat-value" id="stat-duration">5:00</span>
+                        <span class="stat-label" id="stat-duration-label">Duration</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="stat-cycles">12</span>
+                        <span class="stat-label" id="stat-cycles-label">Cycles</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="stat-pattern">4-4-4-4</span>
+                        <span class="stat-label" id="stat-pattern-label">Pattern</span>
+                    </div>
+                </div>
+                <div class="complete-actions">
+                    <button class="btn-start" id="btn-restart">
+                        <span id="restart-label">Repeat Session</span>
+                    </button>
+                    <button class="btn-secondary" id="btn-new-pattern">
+                        <span id="new-pattern-label">Choose Another Pattern</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="js/patterns.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/visualizer.js"></script>
+    <script src="js/session.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
