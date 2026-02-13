@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breathing Metronome</title>
+    <style>
+:root {
+    --color-bg: #0a0e17;
+    --color-bg-card: #131923;
+    --color-bg-card-hover: #1a2332;
+    --color-surface: #1e2a3a;
+    --color-text: #e8ecf1;
+    --color-text-secondary: #8a95a5;
+    --color-text-muted: #5a6577;
+    --color-accent: #4A90D9;
+    --color-inhale: #4A90D9;
+    --color-hold: #50B86C;
+    --color-exhale: #9B6DD7;
+    --color-hold2: #D4A843;
+    --color-danger: #D94A4A;
+    --color-border: rgba(255, 255, 255, 0.06);
+    --font-primary: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --transition-fast: 150ms ease;
+    --transition-normal: 250ms ease;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+body { font-family: var(--font-primary); background: var(--color-bg); color: var(--color-text); min-height: 100vh; overflow-x: hidden; line-height: 1.5; }
+#app { min-height: 100vh; display: flex; flex-direction: column; }
+.container { max-width: 960px; margin: 0 auto; padding: 0 1.25rem; width: 100%; }
+.screen { display: none; flex: 1; }
+.screen.active { display: flex; flex-direction: column; animation: fade-in 0.3s ease; }
+.header { position: sticky; top: 0; z-index: 100; background: rgba(10, 14, 23, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-border); }
+.header-content { max-width: 960px; margin: 0 auto; padding: 0.75rem 1.25rem; display: flex; align-items: center; justify-content: space-between; }
+.logo { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.02em; }
+.header-controls { display: flex; gap: 0.5rem; align-items: center; }
+.btn-icon { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: transparent; color: var(--color-text-secondary); cursor: pointer; transition: all var(--transition-fast); font-size: 0.8rem; font-weight: 600; }
+.btn-icon:hover { background: var(--color-surface); color: var(--color-text); }
+.btn-icon.muted svg #sound-icon-waves { opacity: 0.2; }
+#pattern-select-screen { padding: 2rem 0 3rem; }
+.screen-title { font-size: 1.6rem; font-weight: 700; text-align: center; letter-spacing: -0.03em; margin-bottom: 0.5rem; }
+.screen-subtitle { text-align: center; color: var(--color-text-secondary); font-size: 0.95rem; margin-bottom: 2rem; }
+.pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.pattern-card { background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.25rem; cursor: pointer; transition: all var(--transition-normal); position: relative; overflow: hidden; }
+.pattern-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--card-accent, var(--color-accent)); opacity: 0; transition: opacity var(--transition-normal); }
+.pattern-card:hover { background: var(--color-bg-card-hover); border-color: rgba(255, 255, 255, 0.1); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+.pattern-card:hover::before { opacity: 1; }
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; }
+.card-pattern-name { font-size: 1.05rem; font-weight: 600; }
+.card-timing-badge { display: inline-flex; align-items: center; font-size: 0.8rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 20px; white-space: nowrap; }
+.card-subtitle { font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 0.75rem; }
+.card-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.card-tag { font-size: 0.72rem; color: var(--color-text-muted); background: rgba(255,255,255,0.04); padding: 0.15rem 0.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+#setup-screen { padding: 1.5rem 0 3rem; }
+.btn-back { display: inline-flex; align-items: center; gap: 0.35rem; background: none; border: none; color: var(--color-text-secondary); font-size: 0.9rem; cursor: pointer; padding: 0.5rem 0; margin-bottom: 1rem; font-family: var(--font-primary); transition: color var(--transition-fast); }
+.btn-back:hover { color: var(--color-text); }
+.setup-layout { display: grid; grid-template-columns: 1fr 320px; gap: 2rem; align-items: start; }
+@media (max-width: 720px) { .setup-layout { grid-template-columns: 1fr; } }
+.pattern-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.25rem; }
+.pattern-subtitle { color: var(--color-text-secondary); font-size: 0.95rem; margin-bottom: 1rem; }
+.pattern-timing { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.timing-phase { display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 500; padding: 0.35rem 0.7rem; border-radius: var(--radius-sm); background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); }
+.timing-phase .dot { width: 8px; height: 8px; border-radius: 50%; }
+.info-section { margin-bottom: 1.25rem; }
+.info-section h3 { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin-bottom: 0.5rem; }
+.info-list { list-style: none; padding: 0; }
+.info-list li { position: relative; padding-left: 1rem; margin-bottom: 0.35rem; font-size: 0.9rem; color: var(--color-text-secondary); line-height: 1.5; }
+.info-list li::before { content: ''; position: absolute; left: 0; top: 0.55rem; width: 4px; height: 4px; border-radius: 50%; background: var(--color-text-muted); }
+.info-section p { font-size: 0.9rem; color: var(--color-text-secondary); line-height: 1.5; }
+.warning-box { display: flex; gap: 0.5rem; align-items: flex-start; background: rgba(217, 74, 74, 0.08); border: 1px solid rgba(217, 74, 74, 0.2); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-top: 1rem; }
+.warning-icon { color: var(--color-danger); font-size: 1.1rem; flex-shrink: 0; }
+.warning-box p { font-size: 0.85rem; color: var(--color-danger); }
+.setup-controls { background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; position: sticky; top: 80px; }
+.control-group { margin-bottom: 1.5rem; }
+.control-group label { display: block; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin-bottom: 0.6rem; }
+.duration-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
+.duration-btn { padding: 0.55rem 0.5rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-secondary); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all var(--transition-fast); font-family: var(--font-primary); text-align: center; }
+.duration-btn:hover { background: var(--color-bg-card-hover); color: var(--color-text); }
+.duration-btn.active { background: rgba(74, 144, 217, 0.15); border-color: var(--color-accent); color: var(--color-accent); }
+.visual-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
+.visual-btn { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 0.6rem 0.4rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-secondary); font-size: 0.75rem; cursor: pointer; transition: all var(--transition-fast); font-family: var(--font-primary); }
+.visual-btn:hover { background: var(--color-bg-card-hover); color: var(--color-text); }
+.visual-btn.active { background: rgba(74, 144, 217, 0.15); border-color: var(--color-accent); color: var(--color-accent); }
+.btn-start { width: 100%; padding: 0.85rem 1.5rem; background: var(--color-accent); border: none; border-radius: var(--radius-md); color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all var(--transition-fast); font-family: var(--font-primary); }
+.btn-start:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn-start:active { transform: translateY(0); }
+#session-screen { background: var(--color-bg); }
+.session-layout { display: flex; flex-direction: column; height: 100vh; width: 100%; }
+.session-top-bar { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+.session-control { border: none; width: 40px; height: 40px; }
+.session-timer { font-size: 1.1rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.timer-elapsed { color: var(--color-text); }
+.timer-sep { color: var(--color-text-muted); margin: 0 0.25rem; }
+.timer-total { color: var(--color-text-muted); }
+.session-cycle-count { font-size: 0.85rem; color: var(--color-text-secondary); }
+.session-cycle-count span:last-child { font-weight: 600; color: var(--color-text); margin-left: 0.25rem; }
+.session-visual-area { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+.visual-container { position: relative; display: flex; align-items: center; justify-content: center; width: 300px; height: 300px; }
+.vis-circle { position: absolute; top: 0; left: 0; }
+.vis-bar { width: 100%; max-width: 400px; padding: 0 2rem; }
+.bar-track { width: 100%; height: 16px; background: rgba(255,255,255,0.06); border-radius: 8px; overflow: hidden; }
+.bar-fill { height: 100%; width: 0%; border-radius: 8px; transition: background-color 0.3s ease; background: var(--color-inhale); }
+.vis-center-text { position: absolute; text-align: center; z-index: 10; pointer-events: none; }
+.phase-label { font-size: 1rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-secondary); margin-bottom: 0.25rem; transition: color 0.3s ease; }
+.phase-countdown { font-size: 3.5rem; font-weight: 700; line-height: 1; letter-spacing: -0.04em; transition: color 0.3s ease; }
+.pattern-display { font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.5rem; }
+.session-phase-bar { display: flex; height: 48px; flex-shrink: 0; border-top: 1px solid var(--color-border); }
+.phase-segment { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-muted); transition: all 0.3s ease; position: relative; }
+.phase-segment.active { color: #fff; }
+.phase-segment.phase-inhale.active { background: rgba(74, 144, 217, 0.2); color: var(--color-inhale); }
+.phase-segment.phase-hold.active { background: rgba(80, 184, 108, 0.2); color: var(--color-hold); }
+.phase-segment.phase-exhale.active { background: rgba(155, 109, 215, 0.2); color: var(--color-exhale); }
+.phase-segment.phase-hold2.active { background: rgba(212, 168, 67, 0.2); color: var(--color-hold2); }
+.phase-segment.skip { flex: 0; display: none; }
+#complete-screen { padding: 3rem 0; }
+.complete-content { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: calc(100vh - 200px); text-align: center; }
+.complete-icon { margin-bottom: 1.5rem; }
+#complete-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 2rem; }
+.complete-stats { display: flex; gap: 2.5rem; margin-bottom: 2.5rem; }
+.stat { display: flex; flex-direction: column; gap: 0.25rem; }
+.stat-value { font-size: 1.5rem; font-weight: 700; color: var(--color-text); }
+.stat-label { font-size: 0.8rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.complete-actions { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; max-width: 300px; }
+.btn-secondary { width: 100%; padding: 0.85rem 1.5rem; background: transparent; border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text-secondary); font-size: 1rem; font-weight: 500; cursor: pointer; transition: all var(--transition-fast); font-family: var(--font-primary); }
+.btn-secondary:hover { background: var(--color-surface); color: var(--color-text); }
+@keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.session-visual-area::before { content: ''; position: absolute; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, var(--glow-color, rgba(74, 144, 217, 0.08)) 0%, transparent 70%); pointer-events: none; transition: all 1s ease; }
+@media (max-width: 480px) { .pattern-grid { grid-template-columns: 1fr; } .screen-title { font-size: 1.3rem; } .visual-container { width: 240px; height: 240px; } .vis-circle { width: 240px; height: 240px; } .phase-countdown { font-size: 2.8rem; } .setup-controls { position: static; } }
+.prep-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 14, 23, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; }
+.prep-count { font-size: 5rem; font-weight: 700; color: var(--color-text); animation: fade-in 0.3s ease; }
+.prep-text { font-size: 1.1rem; color: var(--color-text-secondary); margin-top: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo" id="app-title">Breathing Metronome</h1>
+                <div class="header-controls">
+                    <button class="btn-icon" id="lang-toggle" title="Switch Language" aria-label="Switch language">
+                        <span id="lang-label">EN</span>
+                    </button>
+                    <button class="btn-icon" id="sound-toggle" title="Toggle Sound" aria-label="Toggle sound">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 5L6 9H2v6h4l5 4V5z" id="sound-icon-base"/>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" id="sound-icon-waves"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+        <section id="pattern-select-screen" class="screen active">
+            <div class="container">
+                <h2 class="screen-title" id="choose-pattern-title">Choose Your Breathing Pattern</h2>
+                <p class="screen-subtitle" id="choose-pattern-subtitle">Evidence-based techniques for focus, calm, and resilience</p>
+                <div class="pattern-grid" id="pattern-grid"></div>
+            </div>
+        </section>
+        <section id="setup-screen" class="screen">
+            <div class="container">
+                <button class="btn-back" id="btn-back-to-patterns">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    <span id="back-label">Back</span>
+                </button>
+                <div class="setup-layout">
+                    <div class="setup-info">
+                        <h2 class="pattern-title" id="setup-pattern-title"></h2>
+                        <p class="pattern-subtitle" id="setup-pattern-subtitle"></p>
+                        <div class="pattern-timing" id="setup-timing-display"></div>
+                        <div class="info-section"><h3 id="mechanism-title">How It Works</h3><ul class="info-list" id="setup-mechanism"></ul></div>
+                        <div class="info-section"><h3 id="bestfor-title">Best For</h3><p id="setup-bestfor"></p></div>
+                        <div class="info-section"><h3 id="research-title">Research Basis</h3><p id="setup-research"></p></div>
+                        <div class="warning-box" id="setup-warning" style="display:none;"><span class="warning-icon">&#9888;</span><p id="setup-warning-text"></p></div>
+                    </div>
+                    <div class="setup-controls">
+                        <div class="control-group">
+                            <label id="duration-label">Session Duration</label>
+                            <div class="duration-options" id="duration-options">
+                                <button class="duration-btn" data-duration="60">1 min</button>
+                                <button class="duration-btn" data-duration="180">3 min</button>
+                                <button class="duration-btn active" data-duration="300">5 min</button>
+                                <button class="duration-btn" data-duration="600">10 min</button>
+                                <button class="duration-btn" data-duration="900">15 min</button>
+                                <button class="duration-btn" data-duration="1200">20 min</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label id="visual-style-label">Visual Style</label>
+                            <div class="visual-options" id="visual-options">
+                                <button class="visual-btn active" data-visual="circle">
+                                    <svg width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="20 55"/></svg>
+                                    <span id="visual-circle-label">Circle</span>
+                                </button>
+                                <button class="visual-btn" data-visual="shape">
+                                    <svg width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="8" fill="currentColor" opacity="0.3"/><circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                                    <span id="visual-shape-label">Shape</span>
+                                </button>
+                                <button class="visual-btn" data-visual="bar">
+                                    <svg width="32" height="32" viewBox="0 0 32 32"><rect x="4" y="10" width="24" height="12" rx="6" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="10" width="14" height="12" rx="6" fill="currentColor" opacity="0.3"/></svg>
+                                    <span id="visual-bar-label">Bar</span>
+                                </button>
+                            </div>
+                        </div>
+                        <button class="btn-start" id="btn-start"><span id="start-label">Start Session</span></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section id="session-screen" class="screen">
+            <div class="session-layout">
+                <div class="session-top-bar">
+                    <button class="btn-icon session-control" id="btn-stop" title="Stop">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                    </button>
+                    <div class="session-timer"><span class="timer-elapsed" id="timer-elapsed">0:00</span><span class="timer-sep">/</span><span class="timer-total" id="timer-total">5:00</span></div>
+                    <div class="session-cycle-count"><span id="cycle-label-text">Cycle</span><span id="cycle-count">0</span></div>
+                </div>
+                <div class="session-visual-area">
+                    <div class="visual-container" id="visual-container">
+                        <svg class="vis-circle" id="vis-circle" viewBox="0 0 300 300" width="300" height="300">
+                            <circle cx="150" cy="150" r="120" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8"/>
+                            <circle cx="150" cy="150" r="120" fill="none" stroke="#4A90D9" stroke-width="8" stroke-dasharray="753.98" stroke-dashoffset="753.98" stroke-linecap="round" transform="rotate(-90 150 150)" id="progress-arc"/>
+                            <circle cx="150" cy="150" r="0" id="inner-shape" opacity="0.15"/>
+                        </svg>
+                        <div class="vis-bar" id="vis-bar" style="display:none;"><div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div></div>
+                        <div class="vis-center-text">
+                            <div class="phase-label" id="phase-label">Get Ready</div>
+                            <div class="phase-countdown" id="phase-countdown">3</div>
+                            <div class="pattern-display" id="session-pattern-display"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="session-phase-bar">
+                    <div class="phase-segment phase-inhale" id="phase-seg-inhale"><span id="phase-seg-inhale-label">Inhale</span></div>
+                    <div class="phase-segment phase-hold" id="phase-seg-hold"><span id="phase-seg-hold-label">Hold</span></div>
+                    <div class="phase-segment phase-exhale" id="phase-seg-exhale"><span id="phase-seg-exhale-label">Exhale</span></div>
+                    <div class="phase-segment phase-hold2" id="phase-seg-hold2"><span id="phase-seg-hold2-label">Hold</span></div>
+                </div>
+            </div>
+        </section>
+        <section id="complete-screen" class="screen">
+            <div class="container complete-content">
+                <div class="complete-icon"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#50B86C" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+                <h2 id="complete-title">Session Complete</h2>
+                <div class="complete-stats">
+                    <div class="stat"><span class="stat-value" id="stat-duration">5:00</span><span class="stat-label" id="stat-duration-label">Duration</span></div>
+                    <div class="stat"><span class="stat-value" id="stat-cycles">12</span><span class="stat-label" id="stat-cycles-label">Cycles</span></div>
+                    <div class="stat"><span class="stat-value" id="stat-pattern">4-4-4-4</span><span class="stat-label" id="stat-pattern-label">Pattern</span></div>
+                </div>
+                <div class="complete-actions">
+                    <button class="btn-start" id="btn-restart"><span id="restart-label">Repeat Session</span></button>
+                    <button class="btn-secondary" id="btn-new-pattern"><span id="new-pattern-label">Choose Another Pattern</span></button>
+                </div>
+            </div>
+        </section>
+    </div>
+<script>
+// === PATTERNS ===
+const PATTERNS=[{id:'4-7-8',timing:[4,7,8,0],accent:'#4A90D9',en:{name:'4-7-8 Breathing',subtitle:'Relaxation & Sleep',bestFor:'Insomnia, anxiety, pre-sleep routine, panic attacks',research:"Dr. Andrew Weil's adaptation of pranayama; increases heart rate variability (HRV).",mechanism:['Extended exhale (8 sec) activates parasympathetic nervous system','7-second hold increases CO2 tolerance, deepening relaxation response','Ratio favors exhale, signaling safety to vagus nerve','Stimulates GABA production, natural anti-anxiety neurotransmitter'],tags:['Sleep','Anxiety','Relaxation','Panic Relief']},hi:{name:'4-7-8 श्वास',subtitle:'विश्राम और नींद',bestFor:'अनिद्रा, चिंता, सोने से पहले की दिनचर्या, पैनिक अटैक',research:'डॉ. एंड्रयू वेइल का प्राणायाम रूपांतरण; हृदय गति परिवर्तनशीलता (HRV) बढ़ाता है।',mechanism:['लंबी साँस छोड़ना (8 सेकंड) पैरासिम्पेथेटिक नर्वस सिस्टम को सक्रिय करता है','7-सेकंड रोकना CO2 सहनशीलता बढ़ाता है','अनुपात साँस छोड़ने के पक्ष में, वेगस तंत्रिका को सुरक्षा का संकेत देता है','GABA उत्पादन को उत्तेजित करता है'],tags:['नींद','चिंता','विश्राम','पैनिक से राहत']}},{id:'4-4-4-4',timing:[4,4,4,4],accent:'#50B86C',en:{name:'4-4-4-4 Box Breathing',subtitle:'Focus & Balance',bestFor:'Pre-performance, tactical situations, maintaining calm focus, PTSD management',research:'Used in military training (Navy SEALs); improves cognitive performance under stress.',mechanism:['Equal ratios create autonomic balance','Consistent pattern entrains heart rhythm, stabilizing HRV','Navy SEALs use for stress inoculation and mental clarity','Optimizes oxygen-CO2 exchange without hyperventilation'],tags:['Focus','Military','Balance','PTSD']},hi:{name:'4-4-4-4 बॉक्स ब्रीदिंग',subtitle:'फोकस और संतुलन',bestFor:'प्रदर्शन से पहले, शांत फोकस बनाए रखना, PTSD प्रबंधन',research:'सैन्य प्रशिक्षण (नेवी सील्स) में उपयोग; तनाव में संज्ञानात्मक प्रदर्शन सुधारता है।',mechanism:['समान अनुपात स्वायत्त संतुलन बनाता है','सुसंगत पैटर्न हृदय ताल को प्रशिक्षित करता है','नेवी सील्स तनाव टीकाकरण के लिए उपयोग करते हैं','ऑक्सीजन-CO2 विनिमय को अनुकूलित करता है'],tags:['फोकस','सैन्य','संतुलन','PTSD']}},{id:'6-2-6-2',timing:[6,2,6,2],accent:'#D4A843',en:{name:'6-2-6-2 Breathing',subtitle:'Quick Reset & Energizing',bestFor:'Midday energy dip, quick stress reset, maintaining alertness, work breaks',research:'Resonance frequency breathing shown to maximize HRV; 5-6 breaths per minute optimal.',mechanism:['Shorter holds (2 sec) prevent CO2 buildup causing drowsiness','Equal inhale/exhale maintains balance while allowing faster cycling','6-second phases align with optimal resonance frequency (~5 breaths/min)','Brief holds maintain vagal tone without sedation'],tags:['Energy','Quick Reset','Alertness','Work Break']},hi:{name:'6-2-6-2 श्वास',subtitle:'त्वरित रीसेट और ऊर्जा',bestFor:'दोपहर की ऊर्जा गिरावट, त्वरित तनाव रीसेट, काम के ब्रेक',research:'रेज़ोनेंस फ्रीक्वेंसी ब्रीदिंग HRV को अधिकतम करती है।',mechanism:['छोटे रोक CO2 संचय को रोकते हैं','समान साँस लेना/छोड़ना संतुलन बनाए रखता है','6-सेकंड चरण इष्टतम रेज़ोनेंस फ्रीक्वेंसी के साथ संरेखित होते हैं','संक्षिप्त रोक वेगल टोन बनाए रखते हैं'],tags:['ऊर्जा','त्वरित रीसेट','सतर्कता','काम का ब्रेक']}},{id:'5-5-5-5',timing:[5,5,5,5],accent:'#9B6DD7',en:{name:'5-5-5-5 Breathing',subtitle:'Coherence & Heart-Brain Sync',bestFor:'Emotional regulation, decision-making, chronic stress, building resilience',research:"HeartMath Institute's coherence research; improves emotional regulation.",mechanism:['Creates cardiovascular coherence (smooth, sine-wave HRV pattern)','Synchronizes heart rhythm, respiration, and blood pressure','5-second intervals = 6 breaths/minute (therapeutic zone)','Enhances prefrontal cortex regulation of limbic system'],tags:['Coherence','Emotional','Resilience','Decision-Making']},hi:{name:'5-5-5-5 श्वास',subtitle:'सामंजस्य और हृदय-मस्तिष्क सिंक',bestFor:'भावनात्मक नियमन, निर्णय लेना, पुराना तनाव, लचीलापन बनाना',research:'हार्टमैथ इंस्टीट्यूट का सामंजस्य अनुसंधान।',mechanism:['कार्डियोवैस्कुलर सामंजस्य बनाता है','हृदय ताल और श्वसन को सिंक्रनाइज़ करता है','5-सेकंड अंतराल = 6 श्वास/मिनट','लिम्बिक सिस्टम के नियमन को बढ़ाता है'],tags:['सामंजस्य','भावनात्मक','लचीलापन','निर्णय']}},{id:'4-4-6-2',timing:[4,4,6,2],accent:'#5AAFB8',en:{name:'4-4-6-2 Breathing',subtitle:'Extended Exhale - Gentle Calming',bestFor:'Beginners, mild anxiety, gentle wind-down, accessible calming',research:'Modified coherence breathing; safer for those with breath-holding anxiety.',mechanism:['Longer exhale (6 sec) without extreme hold duration','2-second retention prevents hyperventilation between cycles','Gradual parasympathetic activation without intense CO2 response','Gentler than 4-7-8 for breathing exercise beginners'],tags:['Beginner','Gentle','Calming','Accessible']},hi:{name:'4-4-6-2 श्वास',subtitle:'विस्तारित साँस छोड़ना - हल्की शांति',bestFor:'शुरुआती, हल्की चिंता, धीरे-धीरे शांत होना',research:'संशोधित सामंजस्य श्वास; सुरक्षित।',mechanism:['लंबी साँस छोड़ना (6 सेकंड)','2-सेकंड प्रतिधारण हाइपरवेंटिलेशन को रोकता है','पैरासिम्पेथेटिक का क्रमिक सक्रियण','शुरुआती के लिए 4-7-8 से अधिक कोमल'],tags:['शुरुआती','कोमल','शांति','सुलभ']}},{id:'3-12-6-0',timing:[3,12,6,0],accent:'#D94A6B',warning:true,en:{name:'3-12-6-0 Breathing',subtitle:'Deep Parasympathetic Activation',bestFor:'Severe anxiety, insomnia, trauma response, deep meditation',research:'Advanced pranayama adaptation; powerful vagal brake activation.',mechanism:['Very long hold (12 sec) maximizes CO2 retention','Triggers strong dive reflex and vagal response','Extended exhale (6 sec) compounds parasympathetic effect','No post-exhale hold allows immediate cycle restart'],warningText:'Not for beginners or those with respiratory issues.',tags:['Advanced','Deep Calm','Meditation','Trauma']},hi:{name:'3-12-6-0 श्वास',subtitle:'गहरा पैरासिम्पेथेटिक सक्रियण',bestFor:'गंभीर चिंता, अनिद्रा, गहरा ध्यान',research:'उन्नत प्राणायाम रूपांतरण।',mechanism:['बहुत लंबा रोक (12 सेकंड) CO2 प्रतिधारण को अधिकतम करता है','मजबूत डाइव रिफ्लेक्स को ट्रिगर करता है','विस्तारित साँस छोड़ना पैरासिम्पेथेटिक प्रभाव को मिश्रित करता है','तुरंत चक्र पुनरारंभ की अनुमति देता है'],warningText:'शुरुआती या श्वसन संबंधी समस्याओं वालों के लिए नहीं।',tags:['उन्नत','गहरी शांति','ध्यान','आघात']}},{id:'4-0-4-0',timing:[4,0,4,0],accent:'#6BBF8A',en:{name:'4-0-4-0 Coherent Breathing',subtitle:'Pure Coherent Breathing',bestFor:'Meditation, breath-holding anxiety, COPD patients (modified), continuous practice',research:'Coherent breathing research by Dr. Stephen Elliott; safest pattern.',mechanism:['No holds = continuous, smooth breathing','4 seconds each = 7.5 breaths/minute (therapeutic range)','Gentlest method for autonomic balance','No breath-holding stress for those with panic'],tags:['Meditation','Safe','Continuous','Gentle']},hi:{name:'4-0-4-0 सुसंगत श्वास',subtitle:'शुद्ध सुसंगत श्वास',bestFor:'ध्यान, साँस रोकने की चिंता, निरंतर अभ्यास',research:'डॉ. स्टीफन इलियट द्वारा सुसंगत श्वास अनुसंधान।',mechanism:['कोई रोक नहीं = निरंतर, चिकनी श्वास','4 सेकंड प्रत्येक = 7.5 श्वास/मिनट','स्वायत्त संतुलन के लिए सबसे कोमल विधि','साँस रोकने का कोई तनाव नहीं'],tags:['ध्यान','सुरक्षित','निरंतर','कोमल']}},{id:'6-0-6-0',timing:[6,0,6,0],accent:'#7B8FD4',en:{name:'6-0-6-0 Resonance Breathing',subtitle:'Resonance Breathing',bestFor:'HRV training, biofeedback practice, autonomic optimization, long sessions',research:'Gold standard for HRV biofeedback; most researched pattern.',mechanism:['5 breaths/minute = optimal resonance frequency for most adults','Maximizes respiratory sinus arrhythmia (RSA)','No cognitive load from counting holds','Entrains baroreflex sensitivity'],tags:['HRV','Biofeedback','Resonance','Advanced']},hi:{name:'6-0-6-0 रेज़ोनेंस श्वास',subtitle:'रेज़ोनेंस श्वास',bestFor:'HRV प्रशिक्षण, बायोफीडबैक अभ्यास, लंबे सत्र',research:'HRV बायोफीडबैक के लिए स्वर्ण मानक।',mechanism:['5 श्वास/मिनट = इष्टतम रेज़ोनेंस फ्रीक्वेंसी','RSA को अधिकतम करता है','रोक गिनने से कोई संज्ञानात्मक भार नहीं','बैरोरिफ्लेक्स संवेदनशीलता को प्रशिक्षित करता है'],tags:['HRV','बायोफीडबैक','रेज़ोनेंस','उन्नत']}}];
+const PHASE_NAMES={en:['Inhale','Hold','Exhale','Hold'],hi:['सांस लें','रोकें','सांस छोड़ें','रोकें']};
+const PHASE_COLORS=['#4A90D9','#50B86C','#9B6DD7','#D4A843'];
+
+// === I18N ===
+const I18N={en:{appTitle:'Breathing Metronome',choosePattern:'Choose Your Breathing Pattern',choosePatternSub:'Evidence-based techniques for focus, calm, and resilience',back:'Back',howItWorks:'How It Works',bestFor:'Best For',researchBasis:'Research Basis',sessionDuration:'Session Duration',visualStyle:'Visual Style',circle:'Circle',shape:'Shape',bar:'Bar',startSession:'Start Session',getReady:'Get Ready',inhale:'Inhale',hold:'Hold',exhale:'Exhale',cycle:'Cycle',sessionComplete:'Session Complete',duration:'Duration',cycles:'Cycles',pattern:'Pattern',repeatSession:'Repeat Session',chooseAnother:'Choose Another Pattern',langLabel:'EN',prepText:'Find a comfortable position...','1min':'1 min','3min':'3 min','5min':'5 min','10min':'10 min','15min':'15 min','20min':'20 min'},hi:{appTitle:'ब्रीदिंग मेट्रोनोम',choosePattern:'अपना श्वास पैटर्न चुनें',choosePatternSub:'फोकस, शांति और लचीलेपन के लिए विज्ञान-आधारित तकनीकें',back:'वापस',howItWorks:'यह कैसे काम करता है',bestFor:'किसके लिए सर्वोत्तम',researchBasis:'शोध आधार',sessionDuration:'सत्र अवधि',visualStyle:'विज़ुअल शैली',circle:'वृत्त',shape:'आकार',bar:'बार',startSession:'सत्र शुरू करें',getReady:'तैयार हो जाइए',inhale:'सांस लें',hold:'रोकें',exhale:'सांस छोड़ें',cycle:'चक्र',sessionComplete:'सत्र पूरा हुआ',duration:'अवधि',cycles:'चक्र',pattern:'पैटर्न',repeatSession:'सत्र दोहराएं',chooseAnother:'दूसरा पैटर्न चुनें',langLabel:'हि',prepText:'आरामदायक स्थिति में बैठें...','1min':'1 मिनट','3min':'3 मिनट','5min':'5 मिनट','10min':'10 मिनट','15min':'15 मिनट','20min':'20 मिनट'}};
+let currentLang='en';
+function t(k){return I18N[currentLang][k]||I18N['en'][k]||k;}
+function setLanguage(l){currentLang=l;document.documentElement.lang=l==='hi'?'hi':'en';}
+function getLanguage(){return currentLang;}
+
+// === AUDIO ===
+const AudioEngine=(()=>{let ctx=null;let enabled=true;let voiceEnabled=true;
+function getContext(){if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume();return ctx;}
+function playTick(f=800,v=0.08,d=0.04){if(!enabled)return;try{const ac=getContext();const o=ac.createOscillator();const g=ac.createGain();o.type='sine';o.frequency.setValueAtTime(f,ac.currentTime);g.gain.setValueAtTime(v,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+d);o.connect(g);g.connect(ac.destination);o.start(ac.currentTime);o.stop(ac.currentTime+d);}catch(e){}}
+function playPhaseTransition(i){if(!enabled)return;const fs=[440,523,392,349];const vs=[0.12,0.08,0.1,0.06];playTick(fs[i],vs[i],0.12);}
+function playCountdownTick(){if(!enabled)return;playTick(660,0.1,0.06);}
+function playComplete(){if(!enabled)return;try{const ac=getContext();[523,659,784].forEach((f,i)=>{const o=ac.createOscillator();const g=ac.createGain();o.type='sine';o.frequency.setValueAtTime(f,ac.currentTime+i*0.15);g.gain.setValueAtTime(0.12,ac.currentTime+i*0.15);g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+i*0.15+0.4);o.connect(g);g.connect(ac.destination);o.start(ac.currentTime+i*0.15);o.stop(ac.currentTime+i*0.15+0.4);});}catch(e){}}
+function speakPhase(i){if(!enabled||!voiceEnabled)return;if(!('speechSynthesis' in window))return;window.speechSynthesis.cancel();const cues={en:['Breathe in','Hold','Breathe out','Hold'],hi:['सांस लें','रोकें','सांस छोड़ें','रोकें']};const u=new SpeechSynthesisUtterance(cues[currentLang][i]);u.rate=0.9;u.volume=0.7;u.lang=currentLang==='hi'?'hi-IN':'en-US';window.speechSynthesis.speak(u);}
+function setEnabled(v){enabled=v;if(!v&&'speechSynthesis' in window)window.speechSynthesis.cancel();}
+function ensureResumed(){if(ctx&&ctx.state==='suspended')ctx.resume();}
+return{playTick,playPhaseTransition,playCountdownTick,playComplete,speakPhase,setEnabled,isEnabled:()=>enabled,ensureResumed};})();
+
+// === VISUALIZER ===
+const Visualizer=(()=>{let mode='circle';const CIRC=2*Math.PI*120;let els={};
+function init(){els={progressArc:document.getElementById('progress-arc'),innerShape:document.getElementById('inner-shape'),visCircle:document.getElementById('vis-circle'),visBar:document.getElementById('vis-bar'),barFill:document.getElementById('bar-fill'),phaseLabel:document.getElementById('phase-label'),phaseCountdown:document.getElementById('phase-countdown'),patternDisplay:document.getElementById('session-pattern-display'),visualArea:document.querySelector('.session-visual-area'),segInhale:document.getElementById('phase-seg-inhale'),segHold:document.getElementById('phase-seg-hold'),segExhale:document.getElementById('phase-seg-exhale'),segHold2:document.getElementById('phase-seg-hold2')};}
+function setMode(m){mode=m;if(!els.visCircle)return;if(m==='bar'){els.visCircle.style.display='none';els.visBar.style.display='block';}else{els.visCircle.style.display='block';els.visBar.style.display='none';}}
+function update(pi,prog,secLeft,timing){const c=PHASE_COLORS[pi];const pn=PHASE_NAMES[getLanguage()];els.phaseLabel.textContent=pn[pi];els.phaseLabel.style.color=c;els.phaseCountdown.textContent=Math.ceil(secLeft);els.phaseCountdown.style.color=c;
+const segs=[els.segInhale,els.segHold,els.segExhale,els.segHold2];const tot=timing.reduce((a,b)=>a+b,0);segs.forEach((s,i)=>{s.classList.remove('active');if(timing[i]===0){s.classList.add('skip');}else{s.classList.remove('skip');s.style.flex=timing[i]/tot;}if(i===pi)s.classList.add('active');});
+if(els.visualArea)els.visualArea.style.setProperty('--glow-color',c+'1a');
+if(mode==='circle'){els.progressArc.setAttribute('stroke-dashoffset',CIRC*(1-prog));els.progressArc.setAttribute('stroke',c);els.innerShape.setAttribute('r',0);}
+else if(mode==='shape'){const maxR=100,minR=30;let r;if(pi===0)r=minR+(maxR-minR)*prog;else if(pi===1)r=maxR;else if(pi===2)r=maxR-(maxR-minR)*prog;else r=minR;els.innerShape.setAttribute('r',r);els.innerShape.setAttribute('fill',c);els.innerShape.setAttribute('opacity',0.15+prog*0.1);els.progressArc.setAttribute('stroke-dashoffset',CIRC*(1-prog));els.progressArc.setAttribute('stroke',c);}
+else if(mode==='bar'){let fp;if(pi===0)fp=prog*100;else if(pi===1)fp=100;else if(pi===2)fp=(1-prog)*100;else fp=0;els.barFill.style.width=fp+'%';els.barFill.style.background=c;}}
+function setPatternDisplay(t){if(els.patternDisplay)els.patternDisplay.textContent=t;}
+function reset(){if(els.progressArc){els.progressArc.setAttribute('stroke-dashoffset',CIRC);els.progressArc.setAttribute('stroke',PHASE_COLORS[0]);}if(els.innerShape)els.innerShape.setAttribute('r',0);if(els.barFill)els.barFill.style.width='0%';if(els.phaseLabel){els.phaseLabel.textContent=t('getReady');els.phaseLabel.style.color='';}if(els.phaseCountdown){els.phaseCountdown.textContent='';els.phaseCountdown.style.color='';}}
+return{init,setMode,update,setPatternDisplay,reset};})();
+
+// === SESSION ===
+const Session=(()=>{let pattern=null;let totalDuration=300;let isRunning=false;let sessionStartTime=0;let sessionElapsed=0;let phaseIndex=0;let phaseElapsed=0;let phaseStartTime=0;let cycleCount=0;let lastTickSecond=-1;let animFrameId=null;let onCompleteCallback=null;let elTimerElapsed,elTimerTotal,elCycleCount;
+function init(){elTimerElapsed=document.getElementById('timer-elapsed');elTimerTotal=document.getElementById('timer-total');elCycleCount=document.getElementById('cycle-count');}
+function findFirst(s){let idx=s;for(let i=0;i<4;i++){if(pattern.timing[idx]>0)return idx;idx=(idx+1)%4;}return 0;}
+function nextPhase(c){let idx=(c+1)%4;for(let i=0;i<4;i++){if(pattern.timing[idx]>0)return idx;idx=(idx+1)%4;}return 0;}
+function formatTime(s){return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');}
+function start(pat,dur,onComplete){pattern=pat;totalDuration=dur;onCompleteCallback=onComplete;isRunning=true;sessionElapsed=0;phaseIndex=findFirst(0);phaseElapsed=0;cycleCount=0;lastTickSecond=-1;elTimerTotal.textContent=formatTime(totalDuration);elTimerElapsed.textContent='0:00';elCycleCount.textContent='0';Visualizer.setPatternDisplay(pattern.timing.join('-'));phaseStartTime=performance.now();sessionStartTime=performance.now();AudioEngine.playPhaseTransition(phaseIndex);AudioEngine.speakPhase(phaseIndex);animFrameId=requestAnimationFrame(tick);}
+function stop(){isRunning=false;if(animFrameId){cancelAnimationFrame(animFrameId);animFrameId=null;}if('speechSynthesis' in window)window.speechSynthesis.cancel();}
+function tick(){if(!isRunning)return;const now=performance.now();sessionElapsed=(now-sessionStartTime)/1000;if(sessionElapsed>=totalDuration){complete();return;}elTimerElapsed.textContent=formatTime(Math.floor(sessionElapsed));const pd=pattern.timing[phaseIndex];phaseElapsed=(now-phaseStartTime)/1000;const cs=Math.floor(phaseElapsed);if(cs!==lastTickSecond&&cs<pd){lastTickSecond=cs;if(cs>0)AudioEngine.playTick();}
+if(phaseElapsed>=pd){const prev=phaseIndex;phaseIndex=nextPhase(phaseIndex);if(phaseIndex===findFirst(0)&&prev!==findFirst(0)){cycleCount++;elCycleCount.textContent=cycleCount;}phaseStartTime=now;phaseElapsed=0;lastTickSecond=-1;AudioEngine.playPhaseTransition(phaseIndex);AudioEngine.speakPhase(phaseIndex);}
+const prog=Math.min(phaseElapsed/pd,1);Visualizer.update(phaseIndex,prog,pd-phaseElapsed,pattern.timing);animFrameId=requestAnimationFrame(tick);}
+function complete(){isRunning=false;if(animFrameId){cancelAnimationFrame(animFrameId);animFrameId=null;}if(phaseIndex!==findFirst(0))cycleCount++;AudioEngine.playComplete();if(onCompleteCallback)onCompleteCallback({duration:totalDuration,cycles:cycleCount,patternId:pattern.id});}
+return{init,start,stop,formatTime};})();
+
+// === APP ===
+const App=(()=>{let selectedPattern=null;let selectedDuration=300;let selectedVisual='circle';let soundEnabled=true;let screens={};let currentScreen='pattern-select';
+function init(){screens={'pattern-select':document.getElementById('pattern-select-screen'),'setup':document.getElementById('setup-screen'),'session':document.getElementById('session-screen'),'complete':document.getElementById('complete-screen')};Visualizer.init();Session.init();buildGrid();bindEvents();applyLang();showScreen('pattern-select');}
+function showScreen(n){Object.values(screens).forEach(s=>s.classList.remove('active'));screens[n].classList.add('active');currentScreen=n;const h=document.querySelector('.header');h.style.display=n==='session'?'none':'';}
+function buildGrid(){const g=document.getElementById('pattern-grid');g.innerHTML='';PATTERNS.forEach(p=>{const d=p[getLanguage()]||p.en;const c=document.createElement('div');c.className='pattern-card';c.style.setProperty('--card-accent',p.accent);c.innerHTML=`<div class="card-header"><span class="card-pattern-name">${d.name}</span><span class="card-timing-badge" style="color:${p.accent};background:${p.accent}15">${p.timing.join('-')}</span></div><p class="card-subtitle">${d.subtitle}</p><div class="card-tags">${d.tags.map(t=>`<span class="card-tag">${t}</span>`).join('')}</div>`;c.addEventListener('click',()=>selectPattern(p));g.appendChild(c);});}
+function selectPattern(p){selectedPattern=p;populateSetup(p);showScreen('setup');}
+function populateSetup(p){const d=p[getLanguage()]||p.en;const pn=PHASE_NAMES[getLanguage()];document.getElementById('setup-pattern-title').textContent=d.name;document.getElementById('setup-pattern-subtitle').textContent=d.subtitle;document.getElementById('setup-timing-display').innerHTML=p.timing.map((s,i)=>s===0?'':`<span class="timing-phase"><span class="dot" style="background:${PHASE_COLORS[i]}"></span>${pn[i]} ${s}s</span>`).filter(Boolean).join('');document.getElementById('setup-mechanism').innerHTML=d.mechanism.map(m=>`<li>${m}</li>`).join('');document.getElementById('setup-bestfor').textContent=d.bestFor;document.getElementById('setup-research').textContent=d.research;const w=document.getElementById('setup-warning');if(p.warning&&d.warningText){w.style.display='flex';document.getElementById('setup-warning-text').textContent=d.warningText;}else w.style.display='none';}
+function bindEvents(){document.getElementById('btn-back-to-patterns').addEventListener('click',()=>showScreen('pattern-select'));document.querySelectorAll('.duration-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.duration-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedDuration=parseInt(b.dataset.duration);}));document.querySelectorAll('.visual-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.visual-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedVisual=b.dataset.visual;}));document.getElementById('btn-start').addEventListener('click',startSession);document.getElementById('btn-stop').addEventListener('click',stopSession);document.getElementById('btn-restart').addEventListener('click',startSession);document.getElementById('btn-new-pattern').addEventListener('click',()=>showScreen('pattern-select'));document.getElementById('lang-toggle').addEventListener('click',toggleLang);document.getElementById('sound-toggle').addEventListener('click',toggleSound);document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(currentScreen==='session')stopSession();else if(currentScreen==='setup')showScreen('pattern-select');}if(e.key===' '&&currentScreen==='setup'){e.preventDefault();startSession();}});}
+function startSession(){if(!selectedPattern)return;AudioEngine.ensureResumed();Visualizer.setMode(selectedVisual);Visualizer.reset();showScreen('session');const ov=document.createElement('div');ov.className='prep-overlay';ov.innerHTML=`<div class="prep-count">3</div><div class="prep-text">${t('prepText')}</div>`;document.body.appendChild(ov);let cnt=3;const ce=ov.querySelector('.prep-count');AudioEngine.playCountdownTick();const iv=setInterval(()=>{cnt--;if(cnt>0){ce.textContent=cnt;ce.style.animation='none';ce.offsetHeight;ce.style.animation='fade-in 0.3s ease';AudioEngine.playCountdownTick();}else{clearInterval(iv);ov.remove();Session.start(selectedPattern,selectedDuration,onComplete);}},1000);}
+function stopSession(){Session.stop();showScreen('pattern-select');}
+function onComplete(s){document.getElementById('stat-duration').textContent=Session.formatTime(s.duration);document.getElementById('stat-cycles').textContent=s.cycles;document.getElementById('stat-pattern').textContent=s.patternId;showScreen('complete');}
+function toggleLang(){setLanguage(getLanguage()==='en'?'hi':'en');applyLang();buildGrid();if(selectedPattern)populateSetup(selectedPattern);}
+function applyLang(){document.getElementById('lang-label').textContent=getLanguage()==='en'?'EN':'हि';document.getElementById('app-title').textContent=t('appTitle');document.getElementById('choose-pattern-title').textContent=t('choosePattern');document.getElementById('choose-pattern-subtitle').textContent=t('choosePatternSub');document.getElementById('back-label').textContent=t('back');document.getElementById('mechanism-title').textContent=t('howItWorks');document.getElementById('bestfor-title').textContent=t('bestFor');document.getElementById('research-title').textContent=t('researchBasis');document.getElementById('duration-label').textContent=t('sessionDuration');document.getElementById('visual-style-label').textContent=t('visualStyle');document.getElementById('visual-circle-label').textContent=t('circle');document.getElementById('visual-shape-label').textContent=t('shape');document.getElementById('visual-bar-label').textContent=t('bar');document.getElementById('start-label').textContent=t('startSession');document.getElementById('cycle-label-text').textContent=t('cycle');document.getElementById('complete-title').textContent=t('sessionComplete');document.getElementById('stat-duration-label').textContent=t('duration');document.getElementById('stat-cycles-label').textContent=t('cycles');document.getElementById('stat-pattern-label').textContent=t('pattern');document.getElementById('restart-label').textContent=t('repeatSession');document.getElementById('new-pattern-label').textContent=t('chooseAnother');document.getElementById('phase-seg-inhale-label').textContent=t('inhale');document.getElementById('phase-seg-hold-label').textContent=t('hold');document.getElementById('phase-seg-exhale-label').textContent=t('exhale');document.getElementById('phase-seg-hold2-label').textContent=t('hold');['1min','3min','5min','10min','15min','20min'].forEach((k,i)=>{const bs=document.querySelectorAll('.duration-btn');if(bs[i])bs[i].textContent=t(k);});}
+function toggleSound(){soundEnabled=!soundEnabled;AudioEngine.setEnabled(soundEnabled);document.getElementById('sound-toggle').classList.toggle('muted',!soundEnabled);}
+document.addEventListener('DOMContentLoaded',init);return{};})();
+</script>
+</body>
+</html>
